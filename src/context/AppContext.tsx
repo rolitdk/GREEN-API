@@ -242,12 +242,22 @@ function upsertIncomingChat(
   return [created, ...chats]
 }
 
+function checkAccountFailureMessage(reason: string | undefined): string {
+  if (reason === 'instance is starting or not authorized') {
+    return 'Инстанс запускается или не авторизован в MAX. Проверьте статус в кабинете GREEN-API и отсканируйте QR, затем повторите.'
+  }
+  if (reason === 'User get contact info limit reached') {
+    return 'Слишком много проверок номера. Подождите и повторите позже.'
+  }
+  return reason || 'Не удалось проверить аккаунт MAX'
+}
+
 function chatFromCheckAccount(
   result: CheckAccountResponse,
   phone: string,
 ): Chat {
   if ('status' in result && result.status === false) {
-    throw new Error(result.reason || 'Не удалось проверить аккаунт MAX')
+    throw new Error(checkAccountFailureMessage(result.reason))
   }
   if (!('exist' in result) || !result.exist || !result.chatId) {
     throw new Error('Аккаунта MAX с этим номером нет')

@@ -11,6 +11,17 @@ function isAbortError(error: unknown): boolean {
     : error instanceof Error && error.name === 'AbortError'
 }
 
+async function waitRemaining(
+  startedAt: number,
+  minIntervalMs: number,
+  signal: AbortSignal,
+): Promise<void> {
+  const remaining = minIntervalMs - (Date.now() - startedAt)
+  if (remaining > 0) {
+    await delay(remaining, signal)
+  }
+}
+
 function delay(ms: number, signal: AbortSignal): Promise<void> {
   return new Promise((resolve, reject) => {
     if (signal.aborted) {
@@ -39,6 +50,7 @@ export function useNotificationPolling(): void {
 
     const poll = async () => {
       while (!controller.signal.aborted) {
+        const startedAt = Date.now()
         try {
           const notification = await receiveNotification(credentials, {
             receiveTimeout: RECEIVE_TIMEOUT,
@@ -47,13 +59,14 @@ export function useNotificationPolling(): void {
           if (controller.signal.aborted) {
             break
           }
-          if (!notification) {
+          if (notification) {
+            applyNotification(notification)
+            await deleteNotification(credentials, notification.receiptId, {
+              signal: controller.signal,
+            })
             continue
           }
-          applyNotification(notification)
-          await deleteNotification(credentials, notification.receiptId, {
-            signal: controller.signal,
-          })
+          await waitRemaining(startedAt, RECEIVE_TIMEOUT * 1000, controller.signal)
         } catch (error) {
           if (controller.signal.aborted || isAbortError(error)) {
             break
