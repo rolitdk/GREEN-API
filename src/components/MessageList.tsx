@@ -34,7 +34,7 @@ export function MessageList({ messages }: { messages: Message[] }) {
           <p className="bubble-text">{message.text}</p>
           <time
             className="bubble-time"
-            dateTime={new Date(message.timestamp).toISOString()}
+            dateTime={Number.isFinite(message.timestamp) ? new Date(message.timestamp).toISOString() : undefined}
           >
             {formatTime(message.timestamp)}
           </time>

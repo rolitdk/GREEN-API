@@ -1,9 +1,10 @@
-import { useEffect } from 'react'
-import { deleteNotification, receiveNotification } from '../api/greenApi'
+import { useEffect, useRef } from 'react'
+import { GreenApiError, deleteNotification, receiveNotification } from '../api/greenApi'
 import { useApp } from '../context/AppContext'
 
 const RECEIVE_TIMEOUT = 20
 const RETRY_DELAY_MS = 2000
+const RATE_LIMIT_DELAY_MS = 10_000
 
 function isAbortError(error: unknown): boolean {
   return error instanceof DOMException
@@ -40,6 +41,11 @@ function delay(ms: number, signal: AbortSignal): Promise<void> {
 
 export function useNotificationPolling(): void {
   const { credentials, applyNotification } = useApp()
+  const applyNotificationRef = useRef(applyNotification)
+
+  useEffect(() => {
+    applyNotificationRef.current = applyNotification
+  }, [applyNotification])
 
   useEffect(() => {
     if (!credentials) {
@@ -60,7 +66,11 @@ export function useNotificationPolling(): void {
             break
           }
           if (notification) {
-            applyNotification(notification)
+            try {
+              applyNotificationRef.current(notification)
+            } catch {
+              // Malformed payloads still must be deleted, or the queue retries forever.
+            }
             await deleteNotification(credentials, notification.receiptId, {
               signal: controller.signal,
             })
@@ -71,8 +81,18 @@ export function useNotificationPolling(): void {
           if (controller.signal.aborted || isAbortError(error)) {
             break
           }
+          if (
+            error instanceof GreenApiError &&
+            (error.status === 401 || error.status === 403)
+          ) {
+            break
+          }
+          const retryAfter =
+            error instanceof GreenApiError && error.status === 429
+              ? RATE_LIMIT_DELAY_MS
+              : RETRY_DELAY_MS
           try {
-            await delay(RETRY_DELAY_MS, controller.signal)
+            await delay(retryAfter, controller.signal)
           } catch {
             break
           }
@@ -80,10 +100,14 @@ export function useNotificationPolling(): void {
       }
     }
 
-    void poll()
+    // Skip the StrictMode first-mount fetch so the Network tab is not filled with aborted polls.
+    const startTimer = window.setTimeout(() => {
+      void poll()
+    }, 0)
 
     return () => {
+      window.clearTimeout(startTimer)
       controller.abort()
     }
-  }, [credentials, applyNotification])
+  }, [credentials])
 }

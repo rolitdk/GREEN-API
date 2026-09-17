@@ -7,6 +7,7 @@ import {
   type ReactNode,
 } from 'react'
 import { checkAccount, sendMessage, setSettings } from '../api/greenApi'
+import { applyIncomingNotification } from '../chats'
 import { formatPhone, normalizePhone } from '../phone'
 import type {
   Chat,
@@ -14,7 +15,6 @@ import type {
   Credentials,
   IncomingNotification,
   Message,
-  SenderData,
 } from '../types'
 
 const STORAGE_KEY = 'green-api-credentials'
@@ -127,29 +127,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   )
 
   const applyNotification = useCallback((notification: IncomingNotification) => {
-    const { body } = notification
-    if (body.typeWebhook !== 'incomingMessageReceived') {
-      return
-    }
-    if (body.messageData?.typeMessage !== 'textMessage') {
-      return
-    }
-
-    const text = body.messageData.textMessageData?.textMessage?.trim()
-    const chatId = body.senderData?.chatId
-    if (!text || !chatId) {
-      return
-    }
-
-    const incoming: Message = {
-      id: body.idMessage || `in-${notification.receiptId}`,
-      chatId,
-      text,
-      direction: 'incoming',
-      timestamp: timestampToMs(body.timestamp),
-    }
-
-    setChats((prev) => upsertIncomingChat(prev, body.senderData, incoming))
+    setChats((prev) => applyIncomingNotification(prev, notification))
   }, [])
 
   const login = useCallback(async (next: Credentials) => {
@@ -191,55 +169,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
   )
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>
-}
-
-function timestampToMs(timestamp: number): number {
-  return timestamp < 1e12 ? timestamp * 1000 : timestamp
-}
-
-function phoneFromSender(sender: SenderData): string {
-  if (sender.senderPhoneNumber) {
-    return String(sender.senderPhoneNumber)
-  }
-  if (sender.sender && /^\d+$/.test(sender.sender)) {
-    return sender.sender
-  }
-  return sender.chatId
-}
-
-function titleFromSender(sender: SenderData, phone: string): string {
-  const name = sender.chatName?.trim() || sender.senderName?.trim()
-  if (name) {
-    return name
-  }
-  return /^\d+$/.test(phone) ? formatPhone(phone) : phone
-}
-
-function upsertIncomingChat(
-  chats: Chat[],
-  sender: SenderData | undefined,
-  incoming: Message,
-): Chat[] {
-  const existing = chats.find((chat) => chat.chatId === incoming.chatId)
-  if (existing) {
-    if (existing.messages.some((message) => message.id === incoming.id)) {
-      return chats
-    }
-    const updated: Chat = {
-      ...existing,
-      messages: [...existing.messages, incoming],
-    }
-    return [updated, ...chats.filter((chat) => chat.chatId !== incoming.chatId)]
-  }
-
-  const phone = sender ? phoneFromSender(sender) : incoming.chatId
-  const created: Chat = {
-    chatId: incoming.chatId,
-    phone,
-    title: sender ? titleFromSender(sender, phone) : incoming.chatId,
-    messages: [incoming],
-  }
-  return [created, ...chats]
 }
 
 function checkAccountFailureMessage(reason: string | undefined): string {

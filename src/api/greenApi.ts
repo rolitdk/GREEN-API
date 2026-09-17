@@ -39,12 +39,34 @@ export function greenApiTarget(credentials: Credentials): string {
   return 'https://api.green-api.com'
 }
 
+function methodPath(
+  credentials: Credentials,
+  method: string,
+  extraPath = '',
+): string {
+  return `/waInstance${credentials.idInstance}/${method}/${credentials.apiTokenInstance}${extraPath}`
+}
+
 function methodUrl(
   credentials: Credentials,
   method: string,
   extraPath = '',
 ): string {
-  return `${greenApiTarget(credentials)}/waInstance${credentials.idInstance}/${method}/${credentials.apiTokenInstance}${extraPath}`
+  const path = methodPath(credentials, method, extraPath)
+  if (import.meta.env.DEV) {
+    return `/green-api${path}`
+  }
+  return `${greenApiTarget(credentials)}${path}`
+}
+
+function withTarget(
+  credentials: Credentials,
+  headers: Record<string, string> = {},
+): Record<string, string> {
+  return {
+    ...headers,
+    'X-Green-Api-Target': greenApiTarget(credentials),
+  }
 }
 
 async function parseJson<T>(response: Response): Promise<T> {
@@ -64,7 +86,7 @@ export async function sendMessage(
 ): Promise<SendMessageResponse> {
   const response = await fetch(methodUrl(credentials, 'sendMessage'), {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: withTarget(credentials, { 'Content-Type': 'application/json' }),
     body: JSON.stringify(payload),
   })
   return parseJson<SendMessageResponse>(response)
@@ -78,6 +100,7 @@ export async function receiveNotification(
   const url = `${methodUrl(credentials, 'receiveNotification')}?receiveTimeout=${receiveTimeout}`
   const response = await fetch(url, {
     cache: 'no-store',
+    headers: withTarget(credentials),
     signal: options?.signal,
   })
   const text = await response.text()
@@ -100,6 +123,7 @@ export async function deleteNotification(
     methodUrl(credentials, 'deleteNotification', `/${receiptId}`),
     {
       method: 'DELETE',
+      headers: withTarget(credentials),
       signal: options?.signal,
     },
   )
@@ -117,7 +141,7 @@ export async function checkAccount(
   }
   const response = await fetch(methodUrl(credentials, 'checkAccount'), {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: withTarget(credentials, { 'Content-Type': 'application/json' }),
     body: JSON.stringify(body),
   })
   const text = await response.text()
@@ -145,7 +169,7 @@ export async function setSettings(
 ): Promise<SetSettingsResponse> {
   const response = await fetch(methodUrl(credentials, 'setSettings'), {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: withTarget(credentials, { 'Content-Type': 'application/json' }),
     body: JSON.stringify(settings),
   })
   return parseJson<SetSettingsResponse>(response)
