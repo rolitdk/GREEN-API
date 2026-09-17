@@ -173,7 +173,32 @@ input:focus {
 .sidebar-header {
   padding: 1rem 1.1rem 0.75rem;
   font-weight: 600;
+}
+
+.new-chat-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  padding: 0.75rem 1.1rem 1rem;
   border-bottom: 1px solid var(--border);
+}
+
+.new-chat-form input {
+  margin-bottom: 0;
+}
+
+.new-chat-row {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.new-chat-row .btn-primary {
+  margin-top: 0;
+  flex-shrink: 0;
+}
+
+.new-chat-form .form-error {
+  margin: 0.25rem 0 0;
 }
 
 .sidebar-empty {

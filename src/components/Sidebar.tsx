@@ -1,4 +1,5 @@
 import { useApp } from '../context/AppContext'
+import { NewChatForm } from './NewChatForm'
 
 export function Sidebar() {
   const { chats, activeChatId, selectChat } = useApp()
@@ -6,6 +7,7 @@ export function Sidebar() {
   return (
     <aside className="sidebar">
       <div className="sidebar-header">Чаты</div>
+      <NewChatForm />
       {chats.length === 0 ? (
         <p className="sidebar-empty">Нет чатов. Создайте чат по номеру телефона.</p>
       ) : (

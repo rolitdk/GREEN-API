@@ -26,7 +26,7 @@ export function ChatLayout() {
             <div className="chat-pane-empty">
               <p>Выберите чат</p>
               <p className="chat-pane-hint">
-                Переписка появится справа, когда вы откроете чат из списка.
+                Создайте чат по номеру слева или выберите его в списке.
               </p>
             </div>
           )}
