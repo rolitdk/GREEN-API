@@ -9,6 +9,7 @@ import type {
 } from '../types'
 
 const PROXY_BASE = '/green-api'
+const TARGET_HEADER = 'X-Green-Api-Target'
 const DEFAULT_API_HOSTS = new Set([
   'https://api.green-api.com',
   'https://api.greenapi.com',
@@ -26,12 +27,18 @@ export class GreenApiError extends Error {
   }
 }
 
-function apiBase(credentials: Credentials): string {
+export function greenApiTarget(credentials: Credentials): string {
   const apiUrl = credentials.apiUrl?.trim().replace(/\/$/, '')
-  if (!apiUrl || DEFAULT_API_HOSTS.has(apiUrl)) {
-    return PROXY_BASE
+  if (apiUrl && !DEFAULT_API_HOSTS.has(apiUrl)) {
+    return apiUrl
   }
-  return apiUrl
+
+  const cluster = credentials.idInstance.replace(/\D/g, '').slice(0, 4)
+  if (cluster.length === 4) {
+    return `https://${cluster}.api.green-api.com`
+  }
+
+  return 'https://api.green-api.com'
 }
 
 function methodUrl(
@@ -39,7 +46,16 @@ function methodUrl(
   method: string,
   extraPath = '',
 ): string {
-  return `${apiBase(credentials)}/waInstance${credentials.idInstance}/${method}/${credentials.apiTokenInstance}${extraPath}`
+  return `${PROXY_BASE}/waInstance${credentials.idInstance}/${method}/${credentials.apiTokenInstance}${extraPath}`
+}
+
+function requestHeaders(
+  credentials: Credentials,
+  headers?: HeadersInit,
+): Headers {
+  const next = new Headers(headers)
+  next.set(TARGET_HEADER, greenApiTarget(credentials))
+  return next
 }
 
 async function parseJson<T>(response: Response): Promise<T> {
@@ -59,7 +75,9 @@ export async function sendMessage(
 ): Promise<SendMessageResponse> {
   const response = await fetch(methodUrl(credentials, 'sendMessage'), {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: requestHeaders(credentials, {
+      'Content-Type': 'application/json',
+    }),
     body: JSON.stringify(payload),
   })
   return parseJson<SendMessageResponse>(response)
@@ -71,7 +89,10 @@ export async function receiveNotification(
 ): Promise<IncomingNotification | null> {
   const receiveTimeout = options?.receiveTimeout ?? 20
   const url = `${methodUrl(credentials, 'receiveNotification')}?receiveTimeout=${receiveTimeout}`
-  const response = await fetch(url, { signal: options?.signal })
+  const response = await fetch(url, {
+    signal: options?.signal,
+    headers: requestHeaders(credentials),
+  })
   const text = await response.text()
   if (!response.ok) {
     throw new GreenApiError(response.status, text)
@@ -88,7 +109,10 @@ export async function deleteNotification(
 ): Promise<DeleteNotificationResponse> {
   const response = await fetch(
     methodUrl(credentials, 'deleteNotification', `/${receiptId}`),
-    { method: 'DELETE' },
+    {
+      method: 'DELETE',
+      headers: requestHeaders(credentials),
+    },
   )
   return parseJson<DeleteNotificationResponse>(response)
 }
@@ -104,7 +128,9 @@ export async function checkAccount(
   }
   const response = await fetch(methodUrl(credentials, 'checkAccount'), {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: requestHeaders(credentials, {
+      'Content-Type': 'application/json',
+    }),
     body: JSON.stringify(body),
   })
   return parseJson<CheckAccountResponse>(response)
@@ -116,7 +142,9 @@ export async function setSettings(
 ): Promise<SetSettingsResponse> {
   const response = await fetch(methodUrl(credentials, 'setSettings'), {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: requestHeaders(credentials, {
+      'Content-Type': 'application/json',
+    }),
     body: JSON.stringify(settings),
   })
   return parseJson<SetSettingsResponse>(response)

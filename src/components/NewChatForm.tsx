@@ -8,6 +8,9 @@ function createChatErrorMessage(error: unknown): string {
     return error.message
   }
   if (error instanceof GreenApiError) {
+    if (error.status === 404) {
+      return 'CheckAccount недоступен на этом хосте. Укажите apiUrl из кабинета MAX-инстанса.'
+    }
     return `Не удалось проверить номер (${error.status})`
   }
   if (error instanceof Error && error.message) {

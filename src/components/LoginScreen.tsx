@@ -89,7 +89,7 @@ export function LoginScreen() {
           id="apiUrl"
           name="apiUrl"
           type="url"
-          placeholder="https://api.green-api.com"
+          placeholder="https://7107.api.green-api.com"
           value={apiUrl}
           onChange={(event) => setApiUrl(event.target.value)}
         />
