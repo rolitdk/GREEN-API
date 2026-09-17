@@ -4,6 +4,12 @@ export type Credentials = {
   apiUrl?: string
 }
 
+export type Chat = {
+  chatId: string
+  phone: string
+  title: string
+}
+
 export type SendMessageResponse = {
   idMessage: string
 }

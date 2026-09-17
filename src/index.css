@@ -155,10 +155,147 @@ input:focus {
   color: var(--accent);
 }
 
-.session-placeholder {
+.chat-layout {
   flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: minmax(16rem, 22rem) 1fr;
+}
+
+.sidebar {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  background: var(--bg-elevated);
+  border-right: 1px solid var(--border);
+}
+
+.sidebar-header {
+  padding: 1rem 1.1rem 0.75rem;
+  font-weight: 600;
+  border-bottom: 1px solid var(--border);
+}
+
+.sidebar-empty {
+  margin: 0;
+  padding: 1.25rem 1.1rem;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.chat-list {
+  margin: 0;
+  padding: 0.5rem 0;
+  list-style: none;
+  overflow-y: auto;
+}
+
+.chat-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  width: 100%;
+  padding: 0.7rem 1.1rem;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.chat-item:hover {
+  background: #1f2b25;
+}
+
+.chat-item-active {
+  background: #24352c;
+}
+
+.chat-item-avatar {
+  flex-shrink: 0;
   display: grid;
   place-items: center;
-  padding: 2rem;
+  width: 2.4rem;
+  height: 2.4rem;
+  border-radius: 50%;
+  background: var(--header);
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.chat-item-body {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.chat-item-title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.chat-item-subtitle {
   color: var(--muted);
+  font-size: 0.8rem;
+}
+
+.chat-pane {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg);
+}
+
+.chat-pane-header {
+  display: flex;
+  flex-direction: column;
+  padding: 0.85rem 1.25rem;
+  background: var(--bg-elevated);
+  border-bottom: 1px solid var(--border);
+}
+
+.chat-pane-title {
+  font-weight: 600;
+}
+
+.chat-pane-subtitle {
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+.chat-pane-empty {
+  flex: 1;
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: 0.35rem;
+  padding: 2rem;
+  text-align: center;
+}
+
+.chat-pane-empty p {
+  margin: 0;
+  font-size: 1.15rem;
+  font-weight: 500;
+}
+
+.chat-pane-empty .chat-pane-hint {
+  max-width: 22rem;
+  color: var(--muted);
+  font-size: 0.9rem;
+  font-weight: 400;
+}
+
+@media (max-width: 720px) {
+  .chat-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .sidebar {
+    border-right: 0;
+    border-bottom: 1px solid var(--border);
+    max-height: 40vh;
+  }
 }

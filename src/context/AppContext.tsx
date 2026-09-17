@@ -7,7 +7,7 @@ import {
   type ReactNode,
 } from 'react'
 import { setSettings } from '../api/greenApi'
-import type { Credentials } from '../types'
+import type { Chat, Credentials } from '../types'
 
 const STORAGE_KEY = 'green-api-credentials'
 
@@ -33,6 +33,9 @@ function persistCredentials(credentials: Credentials): void {
 
 type AppContextValue = {
   credentials: Credentials | null
+  chats: Chat[]
+  activeChatId: string | null
+  selectChat: (chatId: string) => void
   login: (credentials: Credentials) => Promise<void>
   logout: () => void
 }
@@ -43,6 +46,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [credentials, setCredentials] = useState<Credentials | null>(
     readStoredCredentials,
   )
+  const [chats, setChats] = useState<Chat[]>([])
+  const [activeChatId, setActiveChatId] = useState<string | null>(null)
+
+  const selectChat = useCallback((chatId: string) => {
+    setActiveChatId(chatId)
+  }, [])
 
   const login = useCallback(async (next: Credentials) => {
     await setSettings(next, { webhookUrl: '', incomingWebhook: 'yes' })
@@ -53,11 +62,20 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const logout = useCallback(() => {
     sessionStorage.removeItem(STORAGE_KEY)
     setCredentials(null)
+    setChats([])
+    setActiveChatId(null)
   }, [])
 
   const value = useMemo(
-    () => ({ credentials, login, logout }),
-    [credentials, login, logout],
+    () => ({
+      credentials,
+      chats,
+      activeChatId,
+      selectChat,
+      login,
+      logout,
+    }),
+    [credentials, chats, activeChatId, selectChat, login, logout],
   )
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>
