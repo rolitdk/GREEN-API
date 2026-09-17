@@ -106,12 +106,14 @@ export async function receiveNotification(
 export async function deleteNotification(
   credentials: Credentials,
   receiptId: number,
+  options?: { signal?: AbortSignal },
 ): Promise<DeleteNotificationResponse> {
   const response = await fetch(
     methodUrl(credentials, 'deleteNotification', `/${receiptId}`),
     {
       method: 'DELETE',
       headers: requestHeaders(credentials),
+      signal: options?.signal,
     },
   )
   return parseJson<DeleteNotificationResponse>(response)
