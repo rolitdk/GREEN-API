@@ -4,10 +4,19 @@ export type Credentials = {
   apiUrl?: string
 }
 
+export type Message = {
+  id: string
+  chatId: string
+  text: string
+  direction: 'outgoing' | 'incoming'
+  timestamp: number
+}
+
 export type Chat = {
   chatId: string
   phone: string
   title: string
+  messages: Message[]
 }
 
 export type SendMessageResponse = {

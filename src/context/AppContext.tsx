@@ -6,9 +6,9 @@ import {
   useState,
   type ReactNode,
 } from 'react'
-import { checkAccount, setSettings } from '../api/greenApi'
+import { checkAccount, sendMessage, setSettings } from '../api/greenApi'
 import { formatPhone, normalizePhone } from '../phone'
-import type { Chat, CheckAccountResponse, Credentials } from '../types'
+import type { Chat, CheckAccountResponse, Credentials, Message } from '../types'
 
 const STORAGE_KEY = 'green-api-credentials'
 
@@ -38,6 +38,7 @@ type AppContextValue = {
   activeChatId: string | null
   selectChat: (chatId: string) => void
   createChat: (phoneInput: string) => Promise<void>
+  sendChatMessage: (chatId: string, text: string) => Promise<void>
   login: (credentials: Credentials) => Promise<void>
   logout: () => void
 }
@@ -82,6 +83,41 @@ export function AppProvider({ children }: { children: ReactNode }) {
     [credentials, chats],
   )
 
+  const sendChatMessage = useCallback(
+    async (chatId: string, text: string) => {
+      if (!credentials) {
+        throw new Error('Нет активной сессии')
+      }
+
+      const messageText = text.trim()
+      if (!messageText) {
+        throw new Error('Сообщение не может быть пустым')
+      }
+
+      const result = await sendMessage(credentials, {
+        chatId,
+        message: messageText,
+      })
+
+      const outgoing: Message = {
+        id: result.idMessage,
+        chatId,
+        text: messageText,
+        direction: 'outgoing',
+        timestamp: Date.now(),
+      }
+
+      setChats((prev) =>
+        prev.map((chat) =>
+          chat.chatId === chatId
+            ? { ...chat, messages: [...chat.messages, outgoing] }
+            : chat,
+        ),
+      )
+    },
+    [credentials],
+  )
+
   const login = useCallback(async (next: Credentials) => {
     await setSettings(next, { webhookUrl: '', incomingWebhook: 'yes' })
     persistCredentials(next)
@@ -102,10 +138,20 @@ export function AppProvider({ children }: { children: ReactNode }) {
       activeChatId,
       selectChat,
       createChat,
+      sendChatMessage,
       login,
       logout,
     }),
-    [credentials, chats, activeChatId, selectChat, createChat, login, logout],
+    [
+      credentials,
+      chats,
+      activeChatId,
+      selectChat,
+      createChat,
+      sendChatMessage,
+      login,
+      logout,
+    ],
   )
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>
@@ -125,6 +171,7 @@ function chatFromCheckAccount(
     chatId: result.chatId,
     phone,
     title: formatPhone(phone),
+    messages: [],
   }
 }
 

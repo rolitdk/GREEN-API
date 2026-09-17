@@ -1,4 +1,6 @@
 import { useApp } from '../context/AppContext'
+import { MessageInput } from './MessageInput'
+import { MessageList } from './MessageList'
 import { Sidebar } from './Sidebar'
 
 export function ChatLayout() {
@@ -18,10 +20,14 @@ export function ChatLayout() {
         <Sidebar />
         <section className="chat-pane" aria-label="Переписка">
           {activeChat ? (
-            <div className="chat-pane-header">
-              <span className="chat-pane-title">{activeChat.title}</span>
-              <span className="chat-pane-subtitle">{activeChat.phone}</span>
-            </div>
+            <>
+              <div className="chat-pane-header">
+                <span className="chat-pane-title">{activeChat.title}</span>
+                <span className="chat-pane-subtitle">{activeChat.phone}</span>
+              </div>
+              <MessageList messages={activeChat.messages} />
+              <MessageInput key={activeChat.chatId} chatId={activeChat.chatId} />
+            </>
           ) : (
             <div className="chat-pane-empty">
               <p>Выберите чат</p>
