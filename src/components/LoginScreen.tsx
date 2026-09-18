@@ -1,7 +1,7 @@
 import { useState, type FormEvent } from 'react'
 import { GreenApiError } from '../api/greenApi'
 import { useApp } from '../context/AppContext'
-import { credentialDefaultsFromEnv, toCredentials } from '../utils/credentials'
+import { toCredentials } from '../utils/credentials'
 
 function loginErrorMessage(error: unknown): string {
   if (error instanceof GreenApiError) {
@@ -18,12 +18,9 @@ function loginErrorMessage(error: unknown): string {
 
 export function LoginScreen() {
   const { login } = useApp()
-  const envDefaults = credentialDefaultsFromEnv()
-  const [idInstance, setIdInstance] = useState(envDefaults.idInstance)
-  const [apiTokenInstance, setApiTokenInstance] = useState(
-    envDefaults.apiTokenInstance,
-  )
-  const [apiUrl, setApiUrl] = useState(envDefaults.apiUrl)
+  const [idInstance, setIdInstance] = useState('')
+  const [apiTokenInstance, setApiTokenInstance] = useState('')
+  const [apiUrl, setApiUrl] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [pending, setPending] = useState(false)
 

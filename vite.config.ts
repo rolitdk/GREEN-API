@@ -9,7 +9,6 @@ const GREEN_API_HOST =
 
 const HOP_BY_HOP = new Set([
   'connection',
-  'content-length',
   'host',
   'keep-alive',
   'proxy-connection',
@@ -41,27 +40,13 @@ function proxyTargetFromRequest(req: IncomingMessage): string {
   return 'https://api.green-api.com'
 }
 
-function outgoingHeaders(
-  req: IncomingMessage,
-  host: string,
-): Record<string, string | string[] | number | undefined> {
-  const headers: Record<string, string | string[] | number | undefined> = {}
-  for (const [key, value] of Object.entries(req.headers)) {
-    if (!value || HOP_BY_HOP.has(key.toLowerCase())) {
-      continue
-    }
-    headers[key] = value
-  }
-  headers.host = host
-  return headers
-}
-
-function incomingHeaders(
+function copyHeaders(
   headers: IncomingMessage['headers'],
-): Record<string, string | string[] | number | undefined> {
-  const result: Record<string, string | string[] | number | undefined> = {}
+  extra: Record<string, string | number> = {},
+): Record<string, string | string[] | number> {
+  const result: Record<string, string | string[] | number> = { ...extra }
   for (const [key, value] of Object.entries(headers)) {
-    if (!value || HOP_BY_HOP.has(key.toLowerCase())) {
+    if (value === undefined || HOP_BY_HOP.has(key.toLowerCase())) {
       continue
     }
     result[key] = value
@@ -69,9 +54,32 @@ function incomingHeaders(
   return result
 }
 
-function proxyGreenApi(req: IncomingMessage, res: ServerResponse): void {
+function readRequestBody(req: IncomingMessage): Promise<Buffer> {
+  return new Promise((resolve, reject) => {
+    if (req.readableEnded) {
+      resolve(Buffer.alloc(0))
+      return
+    }
+    const chunks: Buffer[] = []
+    req.on('data', (chunk: Buffer | string) => {
+      chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk))
+    })
+    req.on('end', () => resolve(Buffer.concat(chunks)))
+    req.on('error', reject)
+  })
+}
+
+async function proxyGreenApi(
+  req: IncomingMessage,
+  res: ServerResponse,
+): Promise<void> {
   const path = (req.url ?? '').replace(/^\/green-api/, '')
   const target = new URL(`${proxyTargetFromRequest(req)}${path}`)
+  const body = await readRequestBody(req)
+  const headers = copyHeaders(req.headers, { host: target.host })
+  if (body.length > 0) {
+    headers['content-length'] = body.length
+  }
 
   const proxyReq = https.request(
     {
@@ -79,18 +87,32 @@ function proxyGreenApi(req: IncomingMessage, res: ServerResponse): void {
       port: 443,
       path: `${target.pathname}${target.search}`,
       method: req.method,
-      headers: outgoingHeaders(req, target.host),
+      headers,
       timeout: 60_000,
     },
     (proxyRes) => {
       try {
-        res.writeHead(proxyRes.statusCode ?? 502, incomingHeaders(proxyRes.headers))
+        res.writeHead(
+          proxyRes.statusCode ?? 502,
+          copyHeaders(proxyRes.headers),
+        )
       } catch {
         res.writeHead(proxyRes.statusCode ?? 502)
       }
       proxyRes.pipe(res)
     },
   )
+
+  const abortUpstream = () => {
+    proxyReq.destroy()
+  }
+
+  req.on('aborted', abortUpstream)
+  res.on('close', () => {
+    if (!res.writableEnded) {
+      abortUpstream()
+    }
+  })
 
   proxyReq.on('timeout', () => {
     proxyReq.destroy()
@@ -106,7 +128,7 @@ function proxyGreenApi(req: IncomingMessage, res: ServerResponse): void {
     }
   })
 
-  req.pipe(proxyReq)
+  proxyReq.end(body.length ? body : undefined)
 }
 
 function greenApiProxyPlugin(): Plugin {
@@ -120,7 +142,15 @@ function greenApiProxyPlugin(): Plugin {
       next()
       return
     }
-    proxyGreenApi(req, res)
+    void proxyGreenApi(req, res).catch(() => {
+      if (!res.headersSent) {
+        res.statusCode = 502
+        res.setHeader('Content-Type', 'text/plain; charset=utf-8')
+        res.end('GREEN-API proxy error')
+      } else if (!res.writableEnded) {
+        res.end()
+      }
+    })
   }
 
   return {

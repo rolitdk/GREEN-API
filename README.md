@@ -32,12 +32,7 @@
 
 ## Инструкция по запуску
 
-Скопируйте `.env.example` в `.env` и заполните `VITE_ID_INSTANCE` и `VITE_API_TOKEN_INSTANCE` (при необходимости — `VITE_API_URL`). Форма входа подставит эти значения. Файл `.env` в git не попадает.
-
-Переменные с префиксом `VITE_` попадают в клиентский бандл, поэтому это удобно только для локальной разработки, а не для публикации секретов.
-
 ```bash
-cp .env.example .env
 npm install
 npm run dev
 ```
@@ -58,7 +53,7 @@ Dev-сервер проксирует `/green-api` на API GREEN-API (обхо�
 
 ## Сценарий проверки
 
-1. Введите `idInstance` и `apiTokenInstance` (или заполните `.env`) и войдите.
+1. Введите `idInstance` и `apiTokenInstance` и войдите.
 2. В сайдбаре укажите номер получателя (РФ или РБ) и создайте чат.
 3. Отправьте текстовое сообщение.
 4. Ответьте из приложения MAX.
@@ -80,7 +75,7 @@ Dev-сервер проксирует `/green-api` на API GREEN-API (обхо�
 | Файл | Что проверяет |
 | --- | --- |
 | `src/utils/phone.test.ts` | Нормализация и формат номеров РФ/РБ, отказ пустого и чужого кода страны |
-| `src/utils/credentials.test.ts` | Сборка credentials (trim, `apiUrl` без слэша) и чтение `VITE_*` из env |
+| `src/utils/credentials.test.ts` | Сборка credentials (trim, `apiUrl` без слэша) |
 | `src/api/greenApi.test.ts` | Выбор хоста API, `sendMessage`, пустой `receiveNotification`, `checkAccount` при `status: false` и не-JSON |
 | `src/chats.test.ts` | Разбор входящего текстового webhook, игнор не-текста, защита от дублей, создание чата из `CheckAccount` и тексты ошибок |
 | `src/context/AppContext.test.tsx` | Сценарий: логин → создание чата → отправка → входящее → выход (API замокан) |
