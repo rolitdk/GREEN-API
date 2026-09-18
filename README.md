@@ -31,7 +31,12 @@
 
 ## Локальный запуск
 
+Скопируйте `.env.example` в `.env` и заполните `VITE_ID_INSTANCE` и `VITE_API_TOKEN_INSTANCE` (при необходимости — `VITE_API_URL`). Форма входа подставит эти значения. Файл `.env` в git не попадает.
+
+Переменные с префиксом `VITE_` попадают в клиентский бандл, поэтому это удобно только для локальной разработки, а не для публикации секретов.
+
 ```bash
+cp .env.example .env
 npm install
 npm run dev
 ```
@@ -46,10 +51,12 @@ Dev-сервер проксирует `/green-api` на API GREEN-API (обхо�
 | `npm run build` | production-сборка |
 | `npm run preview` | просмотр сборки |
 | `npm run lint` | проверка кода |
+| `npm run typecheck` | проверка типов |
+| `npm run test` | unit- и integration-тесты |
 
 ## Сценарий проверки
 
-1. Введите `idInstance` и `apiTokenInstance` (при необходимости — `apiUrl`) и войдите.
+1. Введите `idInstance` и `apiTokenInstance` (или заполните `.env`) и войдите.
 2. В сайдбаре укажите номер получателя (РФ или РБ) и создайте чат.
 3. Отправьте текстовое сообщение.
 4. Ответьте из приложения MAX.

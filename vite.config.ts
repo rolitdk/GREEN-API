@@ -1,3 +1,4 @@
+/// <reference types="vitest/config" />
 import type { IncomingMessage, ServerResponse } from 'node:http'
 import https from 'node:https'
 import react from '@vitejs/plugin-react'
@@ -135,4 +136,8 @@ function greenApiProxyPlugin(): Plugin {
 
 export default defineConfig({
   plugins: [react(), greenApiProxyPlugin()],
+  test: {
+    environment: 'jsdom',
+    setupFiles: ['./src/test/setup.ts'],
+  },
 })

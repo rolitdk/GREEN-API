@@ -1,7 +1,7 @@
 import { useState, type FormEvent } from 'react'
 import { GreenApiError } from '../api/greenApi'
 import { useApp } from '../context/AppContext'
-import { PhoneError } from '../phone'
+import { PhoneError } from '../utils/phone'
 
 function createChatErrorMessage(error: unknown): string {
   if (error instanceof PhoneError) {

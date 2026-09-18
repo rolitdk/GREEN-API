@@ -1,7 +1,7 @@
 import { useState, type FormEvent } from 'react'
 import { GreenApiError } from '../api/greenApi'
 import { useApp } from '../context/AppContext'
-import type { Credentials } from '../types'
+import { credentialDefaultsFromEnv, toCredentials } from '../utils/credentials'
 
 function loginErrorMessage(error: unknown): string {
   if (error instanceof GreenApiError) {
@@ -16,27 +16,14 @@ function loginErrorMessage(error: unknown): string {
   return 'Не удалось подключиться к GREEN-API'
 }
 
-function toCredentials(
-  idInstance: string,
-  apiTokenInstance: string,
-  apiUrl: string,
-): Credentials {
-  const credentials: Credentials = {
-    idInstance: idInstance.trim(),
-    apiTokenInstance: apiTokenInstance.trim(),
-  }
-  const trimmedUrl = apiUrl.trim().replace(/\/$/, '')
-  if (trimmedUrl) {
-    credentials.apiUrl = trimmedUrl
-  }
-  return credentials
-}
-
 export function LoginScreen() {
   const { login } = useApp()
-  const [idInstance, setIdInstance] = useState('')
-  const [apiTokenInstance, setApiTokenInstance] = useState('')
-  const [apiUrl, setApiUrl] = useState('')
+  const envDefaults = credentialDefaultsFromEnv()
+  const [idInstance, setIdInstance] = useState(envDefaults.idInstance)
+  const [apiTokenInstance, setApiTokenInstance] = useState(
+    envDefaults.apiTokenInstance,
+  )
+  const [apiUrl, setApiUrl] = useState(envDefaults.apiUrl)
   const [error, setError] = useState<string | null>(null)
   const [pending, setPending] = useState(false)
 
