@@ -7,6 +7,7 @@
 - React 19
 - TypeScript
 - Vite 8
+- Vitest + Testing Library
 
 Без Redux, axios, UI-китов и роутера: состояние в React Context, запросы через `fetch`.
 
@@ -29,7 +30,7 @@
 | `apiTokenInstance` | Токен API инстанса |
 | `apiUrl` | Необязательно. URL кластера из кабинета, если он отличается от `https://api.green-api.com` |
 
-## Локальный запуск
+## Инструкция по запуску
 
 Скопируйте `.env.example` в `.env` и заполните `VITE_ID_INSTANCE` и `VITE_API_TOKEN_INSTANCE` (при необходимости — `VITE_API_URL`). Форма входа подставит эти значения. Файл `.env` в git не попадает.
 
@@ -47,12 +48,13 @@ Dev-сервер проксирует `/green-api` на API GREEN-API (обхо�
 
 | Команда | Описание |
 | --- | --- |
-| `npm run dev` | dev-сервер |
-| `npm run build` | production-сборка |
-| `npm run preview` | просмотр сборки |
-| `npm run lint` | проверка кода |
-| `npm run typecheck` | проверка типов |
-| `npm run test` | unit- и integration-тесты |
+| `npm install` | установка зависимостей |
+| `npm run dev` | локальный dev-сервер (Vite) |
+| `npm run build` | production-сборка (`tsc -b` + Vite) |
+| `npm run preview` | просмотр production-сборки |
+| `npm run test` | unit- и component-тесты (Vitest, один прогон) |
+| `npm run lint` | проверка кода (oxlint) |
+| `npm run typecheck` | проверка типов TypeScript |
 
 ## Сценарий проверки
 
@@ -61,6 +63,30 @@ Dev-сервер проксирует `/green-api` на API GREEN-API (обхо�
 3. Отправьте текстовое сообщение.
 4. Ответьте из приложения MAX.
 5. Ответ должен появиться в том же чате.
+
+## Что сделано
+
+- **Вход по инстансу.** Форма `idInstance` / `apiTokenInstance` / опциональный `apiUrl`. При логине вызывается `SetSettings`, чтобы отключить webhook и включить входящие уведомления. Учётные данные сохраняются в `sessionStorage` на время вкладки.
+- **Создание чата по телефону.** Нормализация номеров РФ (`7…`, в том числе `8…` и 10 цифр) и РБ (`375…`). Проверка аккаунта через `CheckAccount`; чат создаётся только если номер есть в MAX.
+- **Отправка текста.** `SendMessage`; исходящее сообщение сразу появляется в ленте.
+- **Приём входящих.** Long-polling `ReceiveNotification` + `DeleteNotification`. Текстовые `incomingMessageReceived` попадают в существующий чат или создают новый. Повтор одного `idMessage` не дублируется.
+- **Клиент GREEN-API.** Обёртка над `fetch`: кластерный хост из `idInstance`, в dev — прокси `/green-api`, ошибки HTTP как `GreenApiError`.
+- **UI.** Экран логина, список чатов, лента сообщений, поле ввода. Состояние приложения в React Context, без стороннего store.
+
+## Тесты
+
+Тесты запускаются командой `npm run test` (Vitest в режиме `run`, окружение jsdom).
+
+| Файл | Что проверяет |
+| --- | --- |
+| `src/utils/phone.test.ts` | Нормализация и формат номеров РФ/РБ, отказ пустого и чужого кода страны |
+| `src/utils/credentials.test.ts` | Сборка credentials (trim, `apiUrl` без слэша) и чтение `VITE_*` из env |
+| `src/api/greenApi.test.ts` | Выбор хоста API, `sendMessage`, пустой `receiveNotification`, `checkAccount` при `status: false` и не-JSON |
+| `src/chats.test.ts` | Разбор входящего текстового webhook, игнор не-текста, защита от дублей, создание чата из `CheckAccount` и тексты ошибок |
+| `src/context/AppContext.test.tsx` | Сценарий: логин → создание чата → отправка → входящее → выход (API замокан) |
+| `src/components/components.test.tsx` | UI: пустая лента и пузыри, логин (trim и ошибка 401), форма нового чата, отправка сообщения |
+
+Интеграции с живым GREEN-API в тестах нет: `fetch` и контекст мокаются. Ручная проверка — по сценарию выше.
 
 ## Ограничения
 
